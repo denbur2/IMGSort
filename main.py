@@ -36,7 +36,7 @@ for filename in os.listdir(directory):
                         buf["Data"].append(data)
                         # print(data.rsplit(" ")[0].rsplit(":"))
                         ypoints = np.append(ypoints, int(data.rsplit(" ")[1].rsplit(":")[1]))
-                        print(type(int(data.rsplit(" ")[1].rsplit(":")[1])))
+                        # print(type(int(data.rsplit(" ")[1].rsplit(":")[1])))
 
             df = pd.DataFrame(buf)
             df.head(10).style.format({"BasePay": "${:20,.0f}", 
@@ -45,12 +45,18 @@ for filename in os.listdir(directory):
                           "TotalPayBenefits":"${:20,.0f}"})
             df.style
             # print(df.to_string())
-            print(df)
+            # print(df)
 
+print( os.getlogin()+' is logged in')
 
+#countarr = np.bincount(ypoints)
+#print(countarr)
+#print(ypoints)
+#plt.plot(countarr, 'X--r')
+#plt.show()
 
-countarr = np.bincount(ypoints)
-print(countarr)
-print(ypoints)
-plt.plot(countarr, 'X--r')
-plt.show()
+src = 'images'
+dst = 'symlinks'
+
+# This creates a symbolic link on python in tmp directory
+os.symlink(src, dst)
