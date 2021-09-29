@@ -34,13 +34,13 @@ for filename in os.listdir(directory):
                 data = img_exif_data.get(id)
                 # buf.append(tag_name)
                 # buf.append(data)
-                
+
                 if id == 0x9003:
                         buf[f].append(tag_name)
                         buf["Data"].append(data)
                         dates.append(str(datetime.strptime(data,"%Y:%m:%d %H:%M:%S").year) + "-" + str(datetime.strptime(data,"%Y:%m:%d %H:%M:%S").month))
-                        print(datetime.strptime(data,"%Y:%m:%d %H:%M:%S"))
-                        print(datetime.strptime(data,"%Y:%m:%d %H:%M:%S").month)
+                        # print(datetime.strptime(data,"%Y:%m:%d %H:%M:%S"))
+                        # print(datetime.strptime(data,"%Y:%m:%d %H:%M:%S").month)
                         ypoints = np.append(ypoints, int(data.rsplit(" ")[1].rsplit(":")[1]))
                         # print(type(int(data.rsplit(" ")[1].rsplit(":")[1])))
 
@@ -52,8 +52,8 @@ for filename in os.listdir(directory):
             # df.style
             # print(df.to_string())
             # print(df)
-
-print( os.getlogin()+' is logged in')
+# 
+# print( os.getlogin()+' is logged in')
 
 #countarr = np.bincount(ypoints)
 #print(countarr)
@@ -61,8 +61,8 @@ print( os.getlogin()+' is logged in')
 #plt.plot(countarr, 'X--r')
 #plt.show()
 
-src = 'images'
-dst = 'symlinks/asdf'
+# src = 'images'
+# dst = 'symlinks/asdf'
 
 # This creates a symbolic link on python in tmp directory
 # os.symlink(src, dst)
@@ -90,13 +90,39 @@ def make_dirs(head):
     print('path: %s was created' %head_backup)
     return 1
 
-print(make_dirs('asdf/jkl/wert/asdf/sdf/sdf/Sg/DFHG7xcb/xcv'))
+def create_path(date):
+    path = "sorted"
+    path = os.path.join(path, date.rsplit("-")[0])
+    switch={
+        1:"Januar",
+        2:"Februar",
+        3:"Maerz",
+        4:"April",
+        5:"Mai",
+        6:"Juni",
+        7:"Juli",
+        8:"August",
+        9:"September",
+        10:"Oktober",
+        11:"November",
+        12:"Dezember"
+    }
+
+    path = os.path.join(path, switch.get(int(date.rsplit("-")[1]),"0"))
+    return path
+
 # print(make_dirs(''))
 # print(dates)
 dates = list(set(dates))
 dates.sort()
 print(dates)
 
+for i in range(len(dates)):
+    try:
+        os.makedirs(create_path(dates[i]),exist_ok=True)
+        print(create_path(dates[i]))
+    except OSError as e:
+        print(e)
 
 
 print('Execution time in seconds: ' + str((time.time() - startTime)))
