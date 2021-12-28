@@ -115,6 +115,7 @@ def createDirsFromDates(dates):
         except OSError as e:
             print(e)
 
+#das ist meine erste Zeile code vom Surface :)
 def linkFilesInDirs(unsortedImagesPath):
     print("==================")
     for f in filenames:
