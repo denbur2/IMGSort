@@ -107,6 +107,7 @@ def create_path(date):
     path = os.path.join(path, switch.get(int(date.rsplit("-")[1]),"0"))
     return path
 
+# creates the directories according to the dates
 def createDirsFromDates(dates):
     for i in range(len(dates)):
         try:
@@ -115,30 +116,36 @@ def createDirsFromDates(dates):
         except OSError as e:
             print(e)
 
-#das ist meine erste Zeile code vom Surface :)
+#create symlink in sorted folder structure to the input images
 def linkFilesInDirs(unsortedImagesPath):
     print("==================")
     for f in filenames:
         # checking if it is a file
         if os.path.isfile(f):
-            with Image.open(f) as im:
-                img_exif_data = im.getexif()
-                buf = {f:[], "Data":[]}
-                print(f)
-                for id in img_exif_data:
+            print(os.path.splitext(f))
+            if os.path.splitext(f)[1] == ".jpg":
+                print("JPG FILE")
+                with Image.open(f) as im:
+                    img_exif_data = im.getexif()
+                    buf = {f:[], "Data":[]}
+                    print(f)
+                    for id in img_exif_data:
 
-                    tag_name = TAGS.get(id, id)
-                    data = img_exif_data.get(id)
+                        tag_name = TAGS.get(id, id)
+                        data = img_exif_data.get(id)
 
-                    if id == 0x9003:
-                        src = os.path.abspath(f)
-                        date = str(datetime.strptime(data,"%Y:%m:%d %H:%M:%S").year) + "-" + str(datetime.strptime(data,"%Y:%m:%d %H:%M:%S").month)
-                        dest = os.path.join(create_path(date), os.path.split(f)[1])
-                        print("img src: %s dest: %s "%(src,dest))
-                        try:
-                            os.symlink(src, dest)
-                        except Exception as e:
-                            print(e)
+                        if id == 0x9003:
+                            src = os.path.abspath(f)
+                            date = str(datetime.strptime(data,"%Y:%m:%d %H:%M:%S").year) + "-" + str(datetime.strptime(data,"%Y:%m:%d %H:%M:%S").month)
+                            dest = os.path.join(create_path(date), os.path.split(f)[1])
+                            print("img src: %s dest: %s "%(src,dest))
+                            try:
+                                os.symlink(src, dest)
+                            except Exception as e:
+                                print(e)
+            elif os.path.splitext(f)[1] == ".mp4":
+                print("MP4 FILE")
+
 
 dates = list(set(dates))
 dates.sort()
