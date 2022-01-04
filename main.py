@@ -6,9 +6,10 @@ import os
 import matplotlib.pyplot as plt 
 import numpy as np
 import time
-
+import logging
+import magic
 startTime = time.time()
-
+logging.basicConfig(level=logging.INFO)
 # os.symlink(os.path.abspath("IMG_20200725_184755.jpg"), "sorted/test.jpg")
 
 directory = 'images'
@@ -16,49 +17,52 @@ dates = []
 filenames = []
 # iterate over files in
 # that directory
-ypoints = np.array([] ,dtype=np.int_)
+# ypoints = np.array([] ,dtype=np.int_)
 
 for root, dirs, files in os.walk(directory):
     # print("root:%s dirs:%s file:%s"%(root, dirs, files))
     for filename in files:
-        print("root:%s dirs:%s file:%s"%(root, dirs, os.path.join(root, filename)))
+        logging.info("root:%s dirs:%s file:%s"%(root, dirs, os.path.join(root, filename)))
         filenames.append(os.path.join(root, filename))
         f = os.path.join(root, filename)
         # checking if it is a file
 
 # def extractDataFromImages(f):
         if os.path.isfile(f):
-            print(f)
+            # print(f)
             try:
-                with Image.open(f) as im:
-                    img_exif_data = im.getexif()
-                    # for plotting results
-                    buf = {f:[], "Data":[]}
+                print("Asdfjklösdlfkjasölkdfj")
+                logging.info(magic.from_file(f, mime=True))
+                if magic.from_file(f, mime=True) == "image/jpeg":
+                    with Image.open(f) as im:
+                        img_exif_data = im.getexif()
+                        # for plotting results
+                        buf = {f:[], "Data":[]}
 
-                    for id in img_exif_data:
+                        for id in img_exif_data:
 
-                        tag_name = TAGS.get(id, id)
-                        data = img_exif_data.get(id)
-                        # buf.append(tag_name)
-                        # buf.append(data)
+                            tag_name = TAGS.get(id, id)
+                            data = img_exif_data.get(id)
+                            # buf.append(tag_name)
+                            # buf.append(data)
 
-                        if id == 0x9003:
-                                buf[f].append(tag_name)
-                                buf["Data"].append(data)
-                                dates.append(str(datetime.strptime(data,"%Y:%m:%d %H:%M:%S").year) + "-" + str(datetime.strptime(data,"%Y:%m:%d %H:%M:%S").month))
-                                ypoints = np.append(ypoints, int(data.rsplit(" ")[1].rsplit(":")[1]))
+                            if id == 0x9003:
+                                    buf[f].append(tag_name)
+                                    buf["Data"].append(data)
+                                    dates.append(str(datetime.strptime(data,"%Y:%m:%d %H:%M:%S").year) + "-" + str(datetime.strptime(data,"%Y:%m:%d %H:%M:%S").month))
+                                    ypoints = np.append(ypoints, int(data.rsplit(" ")[1].rsplit(":")[1]))
 
-                    df = pd.DataFrame(buf)
-                    df.head(10).style.format({"BasePay": "${:20,.0f}", 
-                                "OtherPay": "${:20,.0f}", 
-                                "TotalPay": "${:20,.0f}",
-                                "TotalPayBenefits":"${:20,.0f}"})
-                    # df.style
-                    # print(df.to_string())
-                    # print(df)
+                        # df = pd.DataFrame(buf)
+                        # df.head(10).style.format({"BasePay": "${:20,.0f}", 
+                        #             "OtherPay": "${:20,.0f}", 
+                        #             "TotalPay": "${:20,.0f}",
+                        #             "TotalPayBenefits":"${:20,.0f}"})
+                        # df.style
+                        # print(df.to_string())
+                        # print(df)
             except Exception as e:
-                print(e)
-print("filenames:%s"%(filenames))
+                logging.error(e)
+# print("filenames:%s"%(filenames))
 # countarr = np.bincount(ypoints)
 # plt.plot(countarr, 'X--r')
 # plt.show()
@@ -73,7 +77,7 @@ def make_dirs(head):
             _path.append(head)
             head = os.path.split(head)[0]
         except OSError as e:
-            print(e)
+            logging.error(e)
             return 0
 
     for i in range(len(_path)-1,-1,-1):
@@ -81,9 +85,10 @@ def make_dirs(head):
         try:
             os.mkdir(_path[i])
         except OSError as e:
+            logging.error(e)
             # print(e)
             i = i
-    print('path: %s was created' %head_backup)
+    logging.info('path: %s was created' %head_backup)
     return 1
 
 def create_path(date):
