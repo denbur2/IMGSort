@@ -9,12 +9,13 @@ import time
 import logging
 import magic
 startTime = time.time()
-# logging.basicConfig(level=logging.INFO)
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
+# logging.basicConfig(level=logging.DEBUG)
 class ImageSorter:
     def __init__(self, directory="images"):
         self.imageDirektory = directory
         self.filenames = []
+        self.datelessPath = "sorted/dateless"
         # self.run()
         self.searchForFilesInDirs()
         self.linkFilesInDirs()
@@ -41,6 +42,7 @@ class ImageSorter:
 
         path = os.path.join(path, switch.get(int(date.rsplit("-")[1]),"0"))
         return path
+        
 
 # append all relative filepaths to filenames
     def searchForFilesInDirs(self):
@@ -70,6 +72,7 @@ class ImageSorter:
             if os.path.isfile(f):
                 if filetype == "video":
                     logging.info("processing Videofile: {}".format(os.path.relpath(f)))
+                    self.sortImage(f)
                 elif filetype == "image":
                     logging.info("processing Imagefile: {}".format(os.path.relpath(f)))
                     self.sortImage(f)
@@ -80,26 +83,37 @@ class ImageSorter:
             else:
                 logging.info("{} is nor an imagefile or a videofile!".format(os.path.relpath(f)))
 
-    def sortImage(self, imageFile):
+    def sortImage(self, imageFilePath):
         try:
-            with Image.open(imageFile) as im:
+            with Image.open(imageFilePath) as im:
                 exifData = im.getexif()
+                foundExifData = False
                 for id in exifData:
                     data = exifData.get(id)
-                    print(exifData)
+                    # print(exifData)
                     if id == 0x9003:
-                        src = os.path.abspath(imageFile)
+                        foundExifData = True
+                        src = os.path.abspath(imageFilePath)
                         date = str(datetime.strptime(data,"%Y:%m:%d %H:%M:%S").year) + "-" + str(datetime.strptime(data,"%Y:%m:%d %H:%M:%S").month)
-                        dest = os.path.join(self.create_path(date), os.path.split(imageFile)[1])
+                        dest = os.path.join(self.create_path(date), os.path.split(imageFilePath)[1])
                         logging.info("img src: %s dest: %s "%(src,dest))
                         try:
                             os.symlink(src, dest)
                         except Exception as e:
                             logging.error(e)                        
-                            print(e)                      
+                            print(e)
+                if not foundExifData:
+                    logging.error("cant find exif date, linking files to dateless: {}".format(imageFilePath))                      
+                    try:
+                        src = os.path.abspath(imageFilePath)
+                        print("asdfkjöslfjölsdkjfas")
+                        os.symlink(src, self.datelessPath)
+                    except Exception as e:
+                        logging.error(e)                        
+                        # print(e)
         except Exception as e:
             logging.error(e)
-    def sortVideo(self, videoFilePath)
+    def sortVideo(self, videoFilePath):
         try:
             pass
         except Exception as e:
