@@ -17,6 +17,7 @@ class ImageSorter:
         # self.run()
         self.searchForFilesInDirs()
     # def run():
+
     def checkFile(self, file):
         if os.path.isfile(file):
             # print(magic.from_file(file,mime=True).split("/"))
@@ -25,6 +26,27 @@ class ImageSorter:
                 logging.info("ITS A VIDEO!")
             elif filetype == "image":
                 logging.info("ITS AN IMAGE!")
+
+    def create_path(self, date):
+        path = "sorted"
+        path = os.path.join(path, date.rsplit("-")[0])
+        switch={
+            1:"Januar",
+            2:"Februar",
+            3:"Maerz",
+            4:"April",
+            5:"Mai",
+            6:"Juni",
+            7:"Juli",
+            8:"August",
+            9:"September",
+            10:"Oktober",
+            11:"November",
+            12:"Dezember"
+        }
+
+        path = os.path.join(path, switch.get(int(date.rsplit("-")[1]),"0"))
+        return path
 
 
     def searchForFilesInDirs(self):
