@@ -8,6 +8,7 @@ import numpy as np
 import time
 import logging
 import magic
+
 startTime = time.time()
 logging.basicConfig(level=logging.INFO)
 # logging.basicConfig(level=logging.DEBUG)
@@ -43,7 +44,6 @@ class ImageSorter:
         path = os.path.join(path, switch.get(int(date.rsplit("-")[1]),"0"))
         return path
         
-
 # append all relative filepaths to filenames
     def searchForFilesInDirs(self):
         for root, dirs, files in os.walk(self.imageDirektory):
@@ -78,8 +78,6 @@ class ImageSorter:
                     self.sortImage(f)
                 else:
                     logging.info("{} is nor an imagefile or a videofile!".format(os.path.relpath(f)))
-
-
             else:
                 logging.info("{} is nor an imagefile or a videofile!".format(os.path.relpath(f)))
 
