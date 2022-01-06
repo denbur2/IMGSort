@@ -122,10 +122,17 @@ class ImageSorter:
         try:
             # logging.info(videoFilePath)
             if os.path.exists(vdpath): print("IST EIN FILE")
-            probe = ffmpeg.probe(vdpath)
-            print(probe["format"]["tags"]["creation_time"])
-            # print(probe)
+            src = os.path.abspath(videoFilePath)
+            tempDate = datetime.strptime(ffmpeg.probe(videoFilePath)["format"]["tags"]["creation_time"],"%Y-%m-%dT%H:%M:%S.000000Z")
+            date = "{}-{}".format(tempDate.year, tempDate.month) 
+            dest = os.path.join(self.create_path(date), os.path.split(vdpath)[1])
+            # print("{} {}".format(date.month, date.year))
 
+            print(date)
+            try:
+                os.symlink(src, dest)
+            except Exception as e:
+                logging.error(e) 
 
         except Exception as e:
             logging.error(e)
