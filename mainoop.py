@@ -1,4 +1,5 @@
 from datetime import datetime
+from sys import version_info
 from PIL import Image
 from PIL.ExifTags import TAGS
 import pandas as pd 
@@ -8,8 +9,12 @@ import numpy as np
 import time
 import logging
 import magic
+import ffmpeg
+
+os.environ["path"] = "C:\\Users\\paulu\\Downloads\\ffmpeg-master-latest-win64-gpl-shared\\ffmpeg-master-latest-win64-gpl-shared\\bin"
 
 startTime = time.time()
+print(TAGS)
 logging.basicConfig(level=logging.INFO)
 # logging.basicConfig(level=logging.DEBUG)
 class ImageSorter:
@@ -49,30 +54,30 @@ class ImageSorter:
         for root, dirs, files in os.walk(self.imageDirektory):
             # print("root:%s dirs:%s file:%s"%(root, dirs, files))
             for filename in files:
-                logging.info("root:%s dirs:%s file:%s"%(root, dirs, os.path.join(root, filename)))
+                # logging.info("root:%s dirs:%s file:%s"%(root, dirs, os.path.join(root, filename)))
                 self.filenames.append(os.path.join(root, filename))
-                f = os.path.join(root, filename)
-                self.checkFile(f)
+                # f = os.path.join(root, filename)
+                # self.checkFile(f)
                 # checking if it is a file
         print(self.filenames)
 
-    def checkFile(self, file):
-        if os.path.isfile(file):
-            # print(magic.from_file(file,mime=True).split("/"))
-            filetype = magic.from_file(file,mime=True).split("/")[0]
-            if filetype == "video":
-                logging.info("ITS A VIDEO!")
-            elif filetype == "image":
-                logging.info("ITS AN IMAGE!")
+    # def checkFile(self, file):
+    #     if os.path.isfile(file):
+    #         # print(magic.from_file(file,mime=True).split("/"))
+    #         filetype = magic.from_file(file,mime=True).split("/")[0]
+    #         if filetype == "video":
+    #             logging.info("ITS A VIDEO!")
+    #         elif filetype == "image":
+    #             logging.info("ITS AN IMAGE!")
 
     def linkFilesInDirs(self):
         for f in self.filenames:
             filetype = magic.from_file(f,mime=True).split("/")[0]
-            logging.debug("checking file: {}".format(os.path.relpath(f)))
+            # logging.debug("checking file: {}".format(os.path.relpath(f)))
             if os.path.isfile(f):
                 if filetype == "video":
                     logging.info("processing Videofile: {}".format(os.path.relpath(f)))
-                    self.sortImage(f)
+                    self.sortVideo(f)
                 elif filetype == "image":
                     logging.info("processing Imagefile: {}".format(os.path.relpath(f)))
                     self.sortImage(f)
@@ -83,13 +88,15 @@ class ImageSorter:
 
     def sortImage(self, imageFilePath):
         try:
+            logging.info("sorting")
             with Image.open(imageFilePath) as im:
-                exifData = im.getexif()
+                exifData = im._getexif()
+                
                 foundExifData = False
                 for id in exifData:
                     data = exifData.get(id)
-                    # print(exifData)
-                    if id == 0x9003:
+                    tag_name = TAGS.get(id, id)
+                    if id == 36867: #36867 -> DateTimeOriginal
                         foundExifData = True
                         src = os.path.abspath(imageFilePath)
                         date = str(datetime.strptime(data,"%Y:%m:%d %H:%M:%S").year) + "-" + str(datetime.strptime(data,"%Y:%m:%d %H:%M:%S").month)
@@ -99,12 +106,10 @@ class ImageSorter:
                             os.symlink(src, dest)
                         except Exception as e:
                             logging.error(e)                        
-                            print(e)
                 if not foundExifData:
                     logging.error("cant find exif date, linking files to dateless: {}".format(imageFilePath))                      
                     try:
                         src = os.path.abspath(imageFilePath)
-                        print("asdfkjöslfjölsdkjfas")
                         os.symlink(src, self.datelessPath)
                     except Exception as e:
                         logging.error(e)                        
@@ -112,8 +117,16 @@ class ImageSorter:
         except Exception as e:
             logging.error(e)
     def sortVideo(self, videoFilePath):
+        vdpath = os.path.abspath(videoFilePath)
+        if not os.path.exists(vdpath): raise FileNotFoundError
         try:
-            pass
+            # logging.info(videoFilePath)
+            if os.path.exists(vdpath): print("IST EIN FILE")
+            probe = ffmpeg.probe(vdpath)
+            print(probe["format"]["tags"]["creation_time"])
+            # print(probe)
+
+
         except Exception as e:
             logging.error(e)
 sorter = ImageSorter()
