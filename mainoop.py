@@ -11,12 +11,28 @@ import logging
 import magic
 import ffmpeg
 
-os.environ["path"] = "C:\\Users\\paulu\\Downloads\\ffmpeg-master-latest-win64-gpl-shared\\ffmpeg-master-latest-win64-gpl-shared\\bin"
+# uncomment the next line if you did not add ffmpeg to path
+# os.environ["path"] = "C:\\Users\\paulu\\Downloads\\ffmpeg-master-latest-win64-gpl-shared\\ffmpeg-master-latest-win64-gpl-shared\\bin"
 
 startTime = time.time()
-print(TAGS)
-logging.basicConfig(level=logging.INFO)
-# logging.basicConfig(level=logging.DEBUG)
+# print(TAGS)
+logger = logging.getLogger('ImageSorter')
+logger.setLevel(logging.DEBUG)
+
+# create console handler and set level to debug
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+
+# create formatter
+# formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
+
+# add formatter to ch
+ch.setFormatter(formatter)
+
+# add ch to logger
+logger.addHandler(ch)
+
 class ImageSorter:
     def __init__(self, directory="images"):
         self.imageDirektory = directory
@@ -26,7 +42,6 @@ class ImageSorter:
         self.searchForFilesInDirs()
         self.linkFilesInDirs()
     # def run():
-
 
     def create_path(self, date):
         path = "sorted"
@@ -48,13 +63,36 @@ class ImageSorter:
 
         path = os.path.join(path, switch.get(int(date.rsplit("-")[1]),"0"))
         return path
-        
+            
+    def make_dirs(self,head):
+        head_backup = head
+        if head == '' or os.path.isdir(head): return 0
+        _path = []
+        while head != '':
+            try:
+                _path.append(head)
+                head = os.path.split(head)[0]
+            except OSError as e:
+                logging.error(e)
+                return 0
+
+        for i in range(len(_path)-1,-1,-1):
+            # print(_path[i])
+            try:
+                os.mkdir(_path[i])
+            except OSError as e:
+                logging.error(e)
+                # print(e)
+                i = i
+        logging.info('path: %s was created' %head_backup)
+        return 1
+
 # append all relative filepaths to filenames
     def searchForFilesInDirs(self):
         for root, dirs, files in os.walk(self.imageDirektory):
             # print("root:%s dirs:%s file:%s"%(root, dirs, files))
             for filename in files:
-                # logging.info("root:%s dirs:%s file:%s"%(root, dirs, os.path.join(root, filename)))
+                # logger.info("root:%s dirs:%s file:%s"%(root, dirs, os.path.join(root, filename)))
                 self.filenames.append(os.path.join(root, filename))
                 # f = os.path.join(root, filename)
                 # self.checkFile(f)
@@ -66,29 +104,29 @@ class ImageSorter:
     #         # print(magic.from_file(file,mime=True).split("/"))
     #         filetype = magic.from_file(file,mime=True).split("/")[0]
     #         if filetype == "video":
-    #             logging.info("ITS A VIDEO!")
+    #             logger.info("ITS A VIDEO!")
     #         elif filetype == "image":
-    #             logging.info("ITS AN IMAGE!")
+    #             logger.info("ITS AN IMAGE!")
 
     def linkFilesInDirs(self):
         for f in self.filenames:
             filetype = magic.from_file(f,mime=True).split("/")[0]
-            # logging.debug("checking file: {}".format(os.path.relpath(f)))
+            # logger.debug("checking file: {}".format(os.path.relpath(f)))
             if os.path.isfile(f):
                 if filetype == "video":
-                    logging.info("processing Videofile: {}".format(os.path.relpath(f)))
+                    logger.info("processing Videofile: {}".format(os.path.relpath(f)))
                     self.sortVideo(f)
                 elif filetype == "image":
-                    logging.info("processing Imagefile: {}".format(os.path.relpath(f)))
+                    logger.info("processing Imagefile: {}".format(os.path.relpath(f)))
                     self.sortImage(f)
                 else:
-                    logging.info("{} is nor an imagefile or a videofile!".format(os.path.relpath(f)))
+                    logger.error("{} is nor an imagefile or a videofile!".format(os.path.relpath(f)))
             else:
-                logging.info("{} is nor an imagefile or a videofile!".format(os.path.relpath(f)))
+                logger.error("{} is nor an imagefile or a videofile!".format(os.path.relpath(f)))
 
     def sortImage(self, imageFilePath):
         try:
-            logging.info("sorting")
+            logger.info("sorting")
             with Image.open(imageFilePath) as im:
                 exifData = im._getexif()
                 
@@ -101,41 +139,38 @@ class ImageSorter:
                         src = os.path.abspath(imageFilePath)
                         date = str(datetime.strptime(data,"%Y:%m:%d %H:%M:%S").year) + "-" + str(datetime.strptime(data,"%Y:%m:%d %H:%M:%S").month)
                         dest = os.path.join(self.create_path(date), os.path.split(imageFilePath)[1])
-                        logging.info("img src: %s dest: %s "%(src,dest))
+                        self.make_dirs()
+                        logger.info("img src: %s dest: %s "%(src,dest))
                         try:
                             os.symlink(src, dest)
                         except Exception as e:
-                            logging.error(e)                        
+                            logger.error(e)                        
                 if not foundExifData:
-                    logging.error("cant find exif date, linking files to dateless: {}".format(imageFilePath))                      
+                    logger.error("cant find exif date, linking files to dateless: {}".format(imageFilePath))                      
                     try:
                         src = os.path.abspath(imageFilePath)
                         os.symlink(src, self.datelessPath)
                     except Exception as e:
-                        logging.error(e)                        
+                        logger.error(e)                        
                         # print(e)
         except Exception as e:
-            logging.error(e)
+            logger.error(e)
+
     def sortVideo(self, videoFilePath):
-        vdpath = os.path.abspath(videoFilePath)
-        if not os.path.exists(vdpath): raise FileNotFoundError
+        videoFilePath = os.path.abspath(videoFilePath)
+        if not os.path.exists(videoFilePath): raise FileNotFoundError
         try:
-            # logging.info(videoFilePath)
-            if os.path.exists(vdpath): print("IST EIN FILE")
+            # logger.info(videoFilePath)
             src = os.path.abspath(videoFilePath)
             tempDate = datetime.strptime(ffmpeg.probe(videoFilePath)["format"]["tags"]["creation_time"],"%Y-%m-%dT%H:%M:%S.000000Z")
             date = "{}-{}".format(tempDate.year, tempDate.month) 
-            dest = os.path.join(self.create_path(date), os.path.split(vdpath)[1])
-            # print("{} {}".format(date.month, date.year))
-
-            print(date)
+            dest = os.path.join(self.create_path(date), os.path.split(videoFilePath)[1])
             try:
                 os.symlink(src, dest)
             except Exception as e:
-                logging.error(e) 
-
+                logger.error(e) 
         except Exception as e:
-            logging.error(e)
+            logger.error(e)
+
+
 sorter = ImageSorter()
-
-
