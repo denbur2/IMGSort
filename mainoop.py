@@ -2,10 +2,10 @@ from datetime import datetime
 from sys import version_info
 from PIL import Image
 from PIL.ExifTags import TAGS
-import pandas as pd 
+# import pandas as pd 
 import os
-import matplotlib.pyplot as plt 
-import numpy as np
+# import matplotlib.pyplot as plt 
+# import numpy as np
 import time
 import logging
 import magic
@@ -90,23 +90,13 @@ class ImageSorter:
 # append all relative filepaths to filenames
     def searchForFilesInDirs(self):
         for root, dirs, files in os.walk(self.imageDirektory):
-            # print("root:%s dirs:%s file:%s"%(root, dirs, files))
             for filename in files:
-                # logger.info("root:%s dirs:%s file:%s"%(root, dirs, os.path.join(root, filename)))
+                # logger.debug("root:%s dirs:%s file:%s"%(root, dirs, os.path.join(root, filename)))
                 self.filenames.append(os.path.join(root, filename))
                 # f = os.path.join(root, filename)
                 # self.checkFile(f)
                 # checking if it is a file
         print(self.filenames)
-
-    # def checkFile(self, file):
-    #     if os.path.isfile(file):
-    #         # print(magic.from_file(file,mime=True).split("/"))
-    #         filetype = magic.from_file(file,mime=True).split("/")[0]
-    #         if filetype == "video":
-    #             logger.info("ITS A VIDEO!")
-    #         elif filetype == "image":
-    #             logger.info("ITS AN IMAGE!")
 
     def linkFilesInDirs(self):
         for f in self.filenames:
@@ -126,7 +116,7 @@ class ImageSorter:
 
     def sortImage(self, imageFilePath):
         try:
-            logger.info("sorting")
+            logger.debug("sorting")
             with Image.open(imageFilePath) as im:
                 exifData = im._getexif()
                 
@@ -139,7 +129,7 @@ class ImageSorter:
                         src = os.path.abspath(imageFilePath)
                         date = str(datetime.strptime(data,"%Y:%m:%d %H:%M:%S").year) + "-" + str(datetime.strptime(data,"%Y:%m:%d %H:%M:%S").month)
                         dest = os.path.join(self.create_path(date), os.path.split(imageFilePath)[1])
-                        self.make_dirs()
+                        self.make_dirs(self.create_path(date))
                         logger.info("img src: %s dest: %s "%(src,dest))
                         try:
                             os.symlink(src, dest)
@@ -150,11 +140,15 @@ class ImageSorter:
                     try:
                         src = os.path.abspath(imageFilePath)
                         os.symlink(src, self.datelessPath)
-                    except Exception as e:
-                        logger.error(e)                        
+                    # except Exception as e:
+                    #     logger.error(e)                        
                         # print(e)
+                    except WindowsError as e:
+                        # logger.error("lllll{}".format(e))
+                        pass
         except Exception as e:
-            logger.error(e)
+            # logger.error(e)
+            pass
 
     def sortVideo(self, videoFilePath):
         videoFilePath = os.path.abspath(videoFilePath)
@@ -165,6 +159,7 @@ class ImageSorter:
             tempDate = datetime.strptime(ffmpeg.probe(videoFilePath)["format"]["tags"]["creation_time"],"%Y-%m-%dT%H:%M:%S.000000Z")
             date = "{}-{}".format(tempDate.year, tempDate.month) 
             dest = os.path.join(self.create_path(date), os.path.split(videoFilePath)[1])
+            self.make_dirs(self.create_path(date))
             try:
                 os.symlink(src, dest)
             except Exception as e:
