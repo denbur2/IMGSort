@@ -33,17 +33,26 @@ ch.setFormatter(formatter)
 # add ch to logger
 logger.addHandler(ch)
 
+class NoExifDateError(Exception):
+    pass
+
+
 class ImageSorter:
-    def __init__(self, directory="images"):
-        self.imageDirektory = directory
-        self.filenames = []
-        self.datelessPath = "sorted/dateless"
-        # self.run()
+    def __init__(self, destination="images", datelessPath = "sorted/dateless"):
+        self.imageDirektory = destination
+        self.datelessPath = datelessPath
+        self.filenames = [] # can be deleted after cleanup
         self.searchForFilesInDirs()
         self.linkFilesInDirs()
     # def run():
+    def sortByMonth():
+        pass
+    def sortByYear():
+        pass
+    def sortByDevice():
+        pass
 
-    def create_path(self, date):
+    def createPathByMonth(self, date):
         path = "sorted"
         path = os.path.join(path, date.rsplit("-")[0])
         switch={
@@ -60,7 +69,6 @@ class ImageSorter:
             11:"November",
             12:"Dezember"
         }
-
         path = os.path.join(path, switch.get(int(date.rsplit("-")[1]),"0"))
         return path
             
@@ -126,8 +134,8 @@ class ImageSorter:
                     foundExifData = True
                     src = os.path.abspath(imageFilePath)
                     date = str(datetime.strptime(data,"%Y:%m:%d %H:%M:%S").year) + "-" + str(datetime.strptime(data,"%Y:%m:%d %H:%M:%S").month)
-                    dest = os.path.join(self.create_path(date), os.path.split(imageFilePath)[1])
-                    self.make_dirs(self.create_path(date))
+                    dest = os.path.join(self.createPathByMonth(date), os.path.split(imageFilePath)[1])
+                    self.make_dirs(self.createPathByMonth(date))
                     logger.info("img src: %s dest: %s "%(src,dest))
                     try:
                         os.symlink(src, dest)
@@ -154,8 +162,8 @@ class ImageSorter:
             src = os.path.abspath(videoFilePath)
             tempDate = datetime.strptime(ffmpeg.probe(videoFilePath)["format"]["tags"]["creation_time"],"%Y-%m-%dT%H:%M:%S.000000Z")
             date = "{}-{}".format(tempDate.year, tempDate.month) 
-            dest = os.path.join(self.create_path(date), os.path.split(videoFilePath)[1])
-            self.make_dirs(self.create_path(date))
+            dest = os.path.join(self.createPathByMonth(date), os.path.split(videoFilePath)[1])
+            self.make_dirs(self.createPathByMonth(date))
             try:
                 os.symlink(src, dest)
             except Exception as e:
@@ -163,32 +171,6 @@ class ImageSorter:
         except Exception as e:
             logger.error(e)
 
-    def createSortedImagePath(self, imageFilePath):
-        with Image.open(imageFilePath) as im:
-            exifData = im._getexif()
-            foundExifData = False
-            for id in exifData:
-                data = exifData.get(id)
-                if id == 36867: #36867 -> DateTimeOriginal
-                    foundExifData = True
-                    src = os.path.abspath(imageFilePath)
-                    date = str(datetime.strptime(data,"%Y:%m:%d %H:%M:%S").year) + "-" + str(datetime.strptime(data,"%Y:%m:%d %H:%M:%S").month)
-                    dest = os.path.join(self.create_path(date), os.path.split(imageFilePath)[1])
-                    self.make_dirs(self.create_path(date))
-                    logger.info("img src: %s dest: %s "%(src,dest))
-                    try:
-                        return dict({"src":src,"dest":dest})
-                    except Exception as e:
-                        logger.error(e)
-                    break                     
-            if not foundExifData:
-                logger.error("cant find exif date, linking files to dateless: {}".format(imageFilePath))                      
-                try:
-                    src = os.path.abspath(imageFilePath)
-                    return dict({"src":src,"dest":self.datelessPath})
-                except WindowsError as e:
-                    # logger.error("lllll{}".format(e))
-                    pass
     def getExifDate(self, imageFilePath):
         with Image.open(imageFilePath) as im:
             exifData = im._getexif()
@@ -198,5 +180,21 @@ class ImageSorter:
                 if id == 36867: #36867 -> DateTimeOriginal
                     foundExifData = True
                     return str(datetime.strptime(data,"%Y:%m:%d %H:%M:%S").year) + "-" + str(datetime.strptime(data,"%Y:%m:%d %H:%M:%S").month)
+            if not foundExifData:
+                logger.error("cant find exif date, linking files to dateless: {}".format(imageFilePath))  
+                raise NoExifDateError
+
+    def createSortedImagePath(self, imageFilePath):
+        try:
+            date = self.getExifDate(imageFilePath)
+            src = os.path.abspath(imageFilePath)
+            dest = os.path.join(self.createPathByMonth(date), os.path.split(imageFilePath)[1])
+            self.make_dirs(self.createPathByMonth(date))
+            logger.info("img src: %s dest: %s "%(src,dest))
+            return dict({"src":src,"dest":dest})
+        except NoExifDateError:
+            logger.error("cant find exif date, linking files to dateless: {}".format(imageFilePath))                      
+            src = os.path.abspath(imageFilePath)
+            return dict({"src":src,"dest":self.datelessPath})
 
 sorter = ImageSorter()
